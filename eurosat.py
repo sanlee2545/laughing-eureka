@@ -5,9 +5,7 @@ Convolutional neural network using pretrained base resnet50.
 
 from keras.applications import resnet50
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from keras.initializers import HeNormal
-from keras.layers import (Dense, Dropout, Flatten, IntegerLookup,
-                          RandomFlip, RandomRotation)
+from keras.layers import Dense, Flatten, IntegerLookup, RandomFlip
 from keras.losses import CategoricalCrossentropy
 from keras.metrics import CategoricalAccuracy
 from keras.optimizers import Adam
@@ -24,11 +22,8 @@ def build_model(param_dict, base):
     input = keras.Input(shape=(64, 64, 3))
     
     x = RandomFlip()(input)
-    #x = RandomRotation(factor=0.5, fill_mode="constant", fill_value=0.0)(x)
     x = base(x)
     x = Flatten()(x)
-    #x = Dropout(0.1)(x)
-    #x = Dense(512, activation="relu", kernel_initializer=HeNormal())(x)
     
     output = Dense(11, activation="softmax")(x)
     
