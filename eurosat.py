@@ -7,21 +7,13 @@ from keras.applications import resnet50
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras.initializers import HeNormal
 from keras.layers import (Dense, Dropout, Flatten, IntegerLookup,
-<<<<<<< HEAD
                           RandomFlip, RandomRotation)
-=======
-                          RandomBrightness, RandomContrast,
-                          RandomFlip)
->>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
 from keras.losses import CategoricalCrossentropy
 from keras.metrics import CategoricalAccuracy
 from keras.optimizers import Adam
 from keras import models
 from math import floor
-<<<<<<< HEAD
 from statistics import mean, pstdev
-=======
->>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
 import keras
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,45 +24,26 @@ def build_model(param_dict, base):
     input = keras.Input(shape=(64, 64, 3))
     
     x = RandomFlip()(input)
-<<<<<<< HEAD
     #x = RandomRotation(factor=0.5, fill_mode="constant", fill_value=0.0)(x)
     x = base(x)
     x = Flatten()(x)
     #x = Dropout(0.1)(x)
     #x = Dense(512, activation="relu", kernel_initializer=HeNormal())(x)
-=======
-    x = RandomBrightness(0.5)(x)
-    x = RandomContrast(0.5)(x)
-    x = base(x)
-    x = Flatten()(x)
-    x = Dropout(0.1)(x)
-    x = Dense(512, activation="relu", kernel_initializer=HeNormal())(x)
->>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
     
     output = Dense(11, activation="softmax")(x)
     
     model = keras.Model(input, output)
-<<<<<<< HEAD
     model.compile(optimizer=Adam(learning_rate=param_dict["lr"],
                                  weight_decay=param_dict["wd"]),
-=======
-    model.compile(optimizer=Adam(learning_rate=param_dict["lr"]),
->>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
                   loss=CategoricalCrossentropy(),
                   metrics=[CategoricalAccuracy()])
     
     return model
 
 def get_callbacks():
-<<<<<<< HEAD
     early_stop_loss = EarlyStopping(monitor="loss", patience=6)
     reduce_lr_plateau = ReduceLROnPlateau(monitor="loss", factor=0.9,
                                           patience=3)
-=======
-    early_stop_loss = EarlyStopping(monitor="loss", patience=8)
-    reduce_lr_plateau = ReduceLROnPlateau(monitor="loss", factor=0.9,
-                                          patience=4)
->>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
 
     return [early_stop_loss, reduce_lr_plateau]
     
@@ -80,7 +53,6 @@ def get_eurosat_dataset():
 
     return images, labels
 
-<<<<<<< HEAD
 def get_outliers(labels):
     label_counts = []
     label_vocabulary = []
@@ -117,11 +89,6 @@ def get_random_numbers(values):
     rng = np.random.default_rng()
     param_dict = {"lr": values[0] * (0.8 + 0.4 * rng.random()),
                   "wd": values[1] * (0.8 + 0.4 * rng.random())}
-=======
-def get_random_numbers(middle):
-    rng = np.random.default_rng()
-    param_dict = {"lr": middle * (0.9 + 0.2 * rng.random())}
->>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
     print(param_dict)
     
     return param_dict
@@ -159,13 +126,10 @@ def main():
     # Load eurosat dataset as tuple of tensors: (images, labels).
     images, labels = get_eurosat_dataset()
 
-<<<<<<< HEAD
     # Exploratory data analysis.
     # Get distribution of labels and check if there are outliers.
     get_outliers(labels)
-
-=======
->>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
+    
     # Get percent indices.
     percents = [floor(np.shape(images)[0] * (i / 100.0))
                 for i in range(100)]
@@ -195,14 +159,9 @@ def main():
 
     # Fit model.
     print('Fitting model.')
-<<<<<<< HEAD
     parameters = [0.01, 0.001]
     model = build_model(get_random_numbers(parameters), base)
     history = model.fit(train_images, train_labels, batch_size=512,
-=======
-    model = build_model(get_random_numbers(0.01), base)
-    history = model.fit(train_images, train_labels, batch_size=128,
->>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
                         callbacks=callbacks, epochs=64, shuffle=True,
                         validation_split=0.1, verbose=1)
 
@@ -211,14 +170,9 @@ def main():
     # Fine-tune by unfreezing base layers.
     print("Fine-tuning.")
     base.trainable = True
-<<<<<<< HEAD
     parameters = [0.0001, 0.001]
     model = build_model(get_random_numbers(parameters), base)
     history = model.fit(train_images, train_labels, batch_size=512,
-=======
-    model = build_model(get_random_numbers(0.0001), base)
-    history = model.fit(train_images, train_labels, batch_size=128,
->>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
                         callbacks=callbacks, epochs=128, shuffle=True,
                         validation_split=0.1, verbose=1)
 
