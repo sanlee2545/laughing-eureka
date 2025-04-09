@@ -1,0 +1,425 @@
+* About this project
+This project uses Convolutional Neural Networks to classify
+images. Our dataset is called EuroSAT and there is a paper about it
+called "EuroSAT: A Novel Dataset and Deep Learning Benchmark for Land
+Use and Land Cover Classification" [[https://github.com/phelber/EuroSAT][here]]. Basically we will copy the
+method of the paper.
+
+We will use the pretrained base ~resnet50~ and other goodies from
+~keras~ like callbacks and data augmentation layers. We also use
+~matplotlib~ for basic plots and ~numpy~ for data structures.
+
+<<<<<<< HEAD
+An outline of the program (about 180 lines of ~python~ code) :
+=======
+An outline of the program (about 150 lines of ~python~ code) :
+>>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
+- ~import~ statements.
+- Define some functions for repetitive things.
+- ~main()~ function that has the main thought process of training the
+  model.
+
+We used [[https://colab.research.google.com][Google Colab]] to run these experiments because we do not have
+GPU access on our personal computer. We paid for the Pro option
+because the free option is unreliable.
+
+The EuroSAT dataset is a collection of 27.000 satellite images taken
+above European countries. Every image is 64 by 64 pixels and every
+pixel can be red, green, or blue (RGB). So every data point has shape
+(64, 64, 3). We chose this dataset because of the small size.
+
+There are ten possible output classes :
+- Industrial Building.
+- Residential Building.
+- Annual Crop.
+- Permanent Crop.
+- River.
+- Sea and Lake.
+- Herbaceous Vegetation.
+- Highway.
+- Pasture.
+- Forest.
+
+Our job is to find the right class for every image.
+* Imports
+Let's import some tools for image classification.
+
+~resnet50~ is our pretrained base model. It is powerful and saves us
+from designing the architecture ourselves.
+#+begin_src python
+from keras.applications import resnet50
+#+end_src
+~EarlyStopping~ and ~ReduceLROnPlateau~ are essentially forms of
+regularization.
+#+begin_src python
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau
+#+end_src
+We don't really know what ~HeNormal~ does but it stays.
+#+begin_src python
+from keras.initializers import HeNormal
+#+end_src
+In order :
+- ~Dense~ layers are basic Neural Network layers and we use one as a
+  hat to sit on top of the ~resnet50~ base model. Another one is used
+  to pick one of eleven classes.
+- ~Dropout~ is used as regularization to make the training process
+  smooth.
+- ~Flatten~ is used before ~Dropout~ and classification by the ~Dense~
+  layer.
+- ~IntegerLookup~ is for one-hot-encoding the outputs which are
+  categorical.
+<<<<<<< HEAD
+- ~RandomFlip~ and ~RandomRotation~ are data augmentation layers used
+  to make more data than what we are given.
+#+begin_src python
+from keras.layers import (Dense, Dropout, Flatten, IntegerLookup,
+			  RandomFlip, RandomRotation)
+=======
+- ~RandomBrightness~, ~RandomConstrast~, and ~RandomFlip~ are data
+  augmentation layers used to make more data than what we are given.
+#+begin_src python
+from keras.layers import (Dense, Dropout, Flatten, IntegerLookup,
+			  RandomBrightness, RandomContrast,
+			  RandomFlip)
+>>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
+#+end_src
+~CategoricalCrossentropy~ is our loss function and
+~CategoricalAccuracy~ is our metric which we track. We use the ~Adam~
+optimizer but any optimizer can be used as long as the relevant
+parameters are adjusted.
+#+begin_src python
+from keras.losses import CategoricalCrossentropy
+from keras.metrics import CategoricalAccuracy
+from keras.optimizers import Adam
+from keras import models
+#+end_src
+Occasionally we will need to round a ~float~ down to an ~int~.
+#+begin_src python
+<<<<<<< HEAD
+  from math import floor
+  from statistics import mean, pstdev
+=======
+from math import floor
+>>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
+#+end_src
+Let's get ~keras~, ~matplotlib~, ~numpy~, ~tensorflow~, and
+~tensorflow_datasets~.
+#+begin_src python
+import keras
+import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
+import tensorflow_datasets as tfds
+#+end_src
+* Functions
+This function builds the model by applying the three data augmentation
+layers ~RandomFlip~, ~RandomBrightness~, and ~RandomContrast~ to the
+input. Then we feed the input into the base which is ~resnet50~. We
+~Flatten~ and ~Dropout~, then train our own ~Dense~ layer with 512
+units and get the output by a second ~Dense~ layer with eleven
+possible outputs. There are eleven outputs and not ten because the
+~IntegerLookup~ layer considers the possibility that the output may be
+outside the vocabulary.
+
+The ~param_dict~ argument will be defined later as a dictionary of
+tunable parameters. At the moment there is only one parameter, ~"lr"~,
+or learning rate.
+#+begin_src python
+  def build_model(param_dict, base):
+      input = keras.Input(shape=(64, 64, 3))
+
+      x = RandomFlip()(input)
+<<<<<<< HEAD
+      #x = RandomRotation(factor=0.5, fill_mode="constant", fill_value=0.0)(x)
+      x = base(x)
+      x = Flatten()(x)
+      #x = Dropout(0.1)(x)
+      #x = Dense(512, activation="relu", kernel_initializer=HeNormal())(x)
+=======
+      x = RandomBrightness(0.5)(x)
+      x = RandomContrast(0.5)(x)
+      x = base(x)
+      x = Flatten()(x)
+      x = Dropout(0.1)(x)
+      x = Dense(512, activation="relu", kernel_initializer=HeNormal())(x)
+>>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
+
+      output = Dense(11, activation="softmax")(x)
+
+      model = keras.Model(input, output)
+<<<<<<< HEAD
+      model.compile(optimizer=Adam(learning_rate=param_dict["lr"],
+                                   weight_decay=param_dict["wd"]),
+  		    loss=CategoricalCrossentropy(),
+  		    metrics=[CategoricalAccuracy()])
+=======
+      model.compile(optimizer=Adam(learning_rate=param_dict["lr"]),
+		    loss=CategoricalCrossentropy(),
+		    metrics=[CategoricalAccuracy()])
+>>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
+
+      return model
+#+end_src
+This function returns the callbacks. The ~EarlyStopping~ callback will
+stop the training process if ~monitor~ does not improve after
+~patience~ epochs. The ~ReduceLROnPlateau~ callback will multiply the
+learning rate by ~factor~ if ~monitor~ does not improve after
+~patience~ epochs. These are basic but effective.
+#+begin_src python
+  def get_callbacks():
+<<<<<<< HEAD
+      early_stop_loss = EarlyStopping(monitor="loss", patience=6)
+      reduce_lr_plateau = ReduceLROnPlateau(monitor="loss", factor=0.9,
+					    patience=3)
+=======
+      early_stop_loss = EarlyStopping(monitor="loss", patience=8)
+      reduce_lr_plateau = ReduceLROnPlateau(monitor="loss", factor=0.9,
+					    patience=4)
+>>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
+
+      return [early_stop_loss, reduce_lr_plateau]
+#+end_src
+This function loads the EuroSAT dataset as one big batch and gives us
+the ~images~ and ~labels~ separately.
+#+begin_src python
+  def get_eurosat_dataset():
+      images, labels = tfds.load("eurosat", split="train",
+				 as_supervised=True, batch_size=-1)
+
+      return images, labels
+#+end_src
+<<<<<<< HEAD
+This function prints outliers among the labels if they have too many
+or too few occurences.
+#+begin_src python
+  def get_outliers(labels):
+    label_counts = []
+    label_vocabulary = []
+    outliers = []
+
+    for label in labels:
+        if label not in label_vocabulary:
+            label_vocabulary.append(label)
+            label_counts.append(1)
+        else:
+            label_counts[label_vocabulary.index(label)] += 1
+
+    label_count_mean = mean(label_counts)
+    label_count_stdev = pstdev(label_counts)
+
+    lower = label_count_mean - label_count_stdev
+    upper = label_count_mean + label_count_stdev
+
+    print(f"{'Mean Label Count : ':<20}{label_count_mean}")
+    print(f"{'Stdev Label Count : ':<20}{label_count_stdev}")
+    print(f"{'Upper Limit : ':<20}{upper}")
+    print(f"{'Lower Limit : ':<20}{lower}")
+    print(f"{'Outliers : ':<20}")
+
+    for label in label_vocabulary:
+        current_count = label_counts[label_vocabulary.index(label)]
+
+        if current_count > upper or current_count < lower:
+            outliers.append(label)
+            print(f"{'Label : ':<20}{label}")
+            print(f"{'Count : ':<20}{current_count}")
+#+end_src
+This function takes a number and returns the ~param_dict~ mentioned
+earlier with parameters taking a random value within +-20% of the
+=======
+This function takes a number and returns the ~param_dict~ mentioned
+earlier with parameters taking a random value within +-10% of the
+>>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
+original value. We also print the values for something to look at
+while training.
+#+begin_src python
+  def get_random_numbers(middle):
+      rng = np.random.default_rng()
+<<<<<<< HEAD
+      param_dict = {"lr": values[0] * (0.8 + 0.4 * rng.random()),
+                    "wd": values[1] * (0.8 + 0.4 * rng.random())}
+=======
+      param_dict = {"lr": middle * (0.9 + 0.2 * rng.random())}
+>>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
+      print(param_dict)
+
+      return param_dict
+#+end_src
+This function makes the plots and labels the axes. We want to know
+about loss and accuracy during training and validation. There is a
+~start_at~ variable which tells the plot to skip the first few
+values because the first few values are usually much smaller than the
+later ones. Training loss and accuracy are blue dots and validation
+loss and accuracy are blue x's. We use two different shapes to make
+sure colorblind people can interpret the plots.
+#+begin_src python
+  def plot(history):
+      acc = history.history["categorical_accuracy"]
+      loss = history.history["loss"]
+      val_acc = history.history["val_categorical_accuracy"]
+      val_loss = history.history["val_loss"]
+
+      epochs = range(len(loss))
+      start_at = 2
+
+      plt.plot(epochs[start_at:], loss[start_at:], "ob",
+	       label="Training Loss")
+      plt.plot(epochs[start_at:], val_loss[start_at:], "xb",
+	       label="Validation Loss")
+      plt.title("Loss")
+      plt.xlabel("Epochs")
+      plt.ylabel("Loss")
+      plt.legend()
+      plt.show()
+
+      plt.plot(epochs[start_at:], acc[start_at:], "ob",
+	       label="Training Accuracy")
+      plt.plot(epochs[start_at:], val_acc[start_at:], "xb",
+	       label="Validation Accuracy")
+      plt.title("Accuracy")
+      plt.xlabel("Epochs")
+      plt.ylabel("Accuracy")
+      plt.legend()
+      plt.show()
+
+#+end_src
+* Main
+A rough outline of the ~main()~ function :
+- Get EuroSAT dataset.
+<<<<<<< HEAD
+- Do some exploratory data analysis.
+=======
+>>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
+- Get ~resnet50~ pretrained base.
+- One-hot-encode labels.
+- Train top layers of model.
+- Fine-tune whole model.
+- Get predictions on test data.
+- And other housekeeping items scattered here and there.
+The ~main()~ function calls the shots.
+#+begin_src python
+def main():
+#+end_src
+We begin by loading the dataset.
+#+begin_src python
+images, labels = get_eurosat_dataset()
+#+end_src
+<<<<<<< HEAD
+Then we do some exploratory data analysis by checking if there are any
+outliers among the labels.
+#+begin_src python
+  get_outliers(labels)
+#+end_src
+=======
+>>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
+We get a list of percentile indices for easy dataset splitting later.
+#+begin_src python
+  percents = [floor(np.shape(images)[0] * (i / 100.0))
+	      for i in range(100)]
+#+end_src
+Let's load the ~resnet50~ base and freeze the layers. We will unfreeze
+the layers later as the paper says to do.
+#+begin_src python
+  base = resnet50.ResNet50(include_top=False, input_shape=(64, 64, 3))
+  base.trainable = False
+#+end_src
+Vocabulary for the ten output classes.
+#+begin_src python
+  label_vocab = [i for i in range(10)]
+#+end_src
+One-hot-encode the labels using the vocabulary from above.
+#+begin_src python
+  one_hot_encode_layer = IntegerLookup(vocabulary=label_vocab,
+				       output_mode="one_hot")
+  encoded_labels = one_hot_encode_layer(labels)
+#+end_src
+We split the dataset into an 80-20 (Training-Test) split.
+#+begin_src python
+  split = 80
+  train_images = images[:percents[split]]
+  test_images = images[percents[split]:]
+  train_labels = encoded_labels[:percents[split]]
+  test_labels = encoded_labels[percents[split]:]
+#+end_src
+Load the callbacks.
+#+begin_src python
+  callbacks = get_callbacks()
+#+end_src
+Train our two ~Dense~ layers first. We use a 10% validation split so
+the dataset now has a 72-8-20 (Training-Validation-Test) split. We
+shuffle to keep things standard casino operating procedure.
+#+begin_src python
+  print('Fitting model.')
+<<<<<<< HEAD
+  parameters = [0.01, 0.001]
+  model = build_model(get_random_numbers(parameters), base)
+  history = model.fit(train_images, train_labels, batch_size=512,
+  		      callbacks=callbacks, epochs=64, shuffle=True,
+  		      validation_split=0.1, verbose=1)
+=======
+  model = build_model(get_random_numbers(0.01), base)
+  history = model.fit(train_images, train_labels, batch_size=128,
+		      callbacks=callbacks, epochs=64, shuffle=True,
+		      validation_split=0.1, verbose=1)
+>>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
+
+  plot(history)
+#+end_src
+Next we set ~base.trainable~ to ~True~ to unfreeze the base layers but
+this time we train with a much smaller learning rate. We don't want
+any large disruptions here.
+#+begin_src python
+  print("Fine-tuning.")
+  base.trainable = True
+<<<<<<< HEAD
+  parameters = [0.0001, 0.001]
+  model = build_model(get_random_numbers(parameters), base)
+  history = model.fit(train_images, train_labels, batch_size=512,
+  		      callbacks=callbacks, epochs=128, shuffle=True,
+  		      validation_split=0.1, verbose=1)
+=======
+  model = build_model(get_random_numbers(0.0001), base)
+  history = model.fit(train_images, train_labels, batch_size=128,
+		      callbacks=callbacks, epochs=128, shuffle=True,
+		      validation_split=0.1, verbose=1)
+>>>>>>> c41c426840f04271b2d456654ddb98e1b06a9e84
+
+  plot(history)
+#+end_src
+Call the ~evaluate()~ function with ~test_images~ and ~test_labels~ to
+see how we did. Hopefully our final results here are very close to our
+earlier validation results.
+#+begin_src python
+  print("Predicting.")
+  model.evaluate(test_images, test_labels, verbose=1)
+#+end_src
+These lines go at the end outside of the ~main()~ function's
+indentation level.
+#+begin_src python
+  if __name__ == "__main__":
+      main()
+#+end_src
+* Conclusions
+At this point after running the program a few times we see that our
+model gets about 96% test accuracy. The plots for accuracy and loss
+show that our training process is pretty sound. We may do some further
+analysis with a confusion matrix or something else to figure out which
+images we are still misclassifying. The benchmark from the paper is
+about 98.5% test accuracy with an 80-20 split using the ~resnet50~
+base. We are satisfied for now with 96%.
+* Plots
+#+CAPTION: Loss when training top few layers.
+[[./images/train-loss.png]]
+#+CAPTION: Accuracy when training top few layers.
+[[./images/train-acc.png]]
+#+CAPTION: Loss when fine-tuning whole model.
+[[./images/finetune-loss.png]]
+#+CAPTION: Accuracy when fine-tuning whole model.
+[[./images/finetune-acc.png]]
+* References
+- Helber, Patrick and others, "EuroSAT: A Novel Dataset and Deep
+  Learning Benchmark for Land Use and Land Cover Classification",
+  /IEEE Journal of Selected Topics in Applied Earth Observations and
+  Remote Sensing/, 2017, [[https://github.com/phelber/EuroSAT][EuroSAT GitHub]].
+* To Do Later
+- Add links.
